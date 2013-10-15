@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tryton>
+<data>
+ 	<!-- res.company -->
+	<record id="view_configuration_form_scanner" model="ir.ui.view">
+		<field name="name">configuration_form</field>
+		<field name="model">stock.configuration</field>
+		<field name="type">form</field>
+        <field name="priority" eval="30"/>
+		<field name="inherit" ref="stock.stock_configuration_view_form"/>
+	</record>
+
+    <record id="nan_stock_scanner_lot_out_view" model="ir.ui.view">
+		<field name="name">pending_out_moves</field>
+		<field name="model">stock.shipment.out</field>
+		<field name="type">form</field>
+        <field name="priority" eval="30"/>
+		<field name="inherit" ref="stock.shipment_out_view_form"/>
+	</record>
+
+    <record id="nan_stock_scanner_lot_out_return_view" model="ir.ui.view">
+		<field name="name">pending_out_moves</field>
+		<field name="model">stock.shipment.out.return</field>
+		<field name="type">form</field>
+        <field name="priority" eval="30"/>
+		<field name="inherit" ref="stock.shipment_out_return_view_form"/>
+	</record>
+
+    <record id="nan_stock_scanner_lot_in_view" model="ir.ui.view">
+		<field name="name">pending_in_moves</field>
+		<field name="model">stock.shipment.in</field>
+		<field name="type">form</field>
+        <field name="priority" eval="30"/>
+		<field name="inherit" ref="stock.shipment_in_view_form"/>
+	</record>
+
+
+
+</data>
+</tryton>
+

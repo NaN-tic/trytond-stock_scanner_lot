@@ -1,0 +1,74 @@
+# 
+msgid ""
+msgstr "Content-Type: text/plain; charset=utf-8\n"
+
+msgctxt "field:stock.configuration,scanner_lot_creation:"
+msgid "Lot Creation"
+msgstr "Creació de lots"
+
+msgctxt "field:stock.shipment.in,scanned_lot:"
+msgid "Stock Lot"
+msgstr "Lot"
+
+msgctxt "field:stock.shipment.in,scanned_lot_ref:"
+msgid "Supplier Lot Ref."
+msgstr "Ref. Lot Proveïdor"
+
+msgctxt "field:stock.shipment.in.return,scanned_lot:"
+msgid "Stock Lot"
+msgstr "Lot"
+
+msgctxt "field:stock.shipment.in.return,scanned_lot_ref:"
+msgid "Supplier Lot Ref."
+msgstr "Ref. Lot Proveïdor"
+
+msgctxt "field:stock.shipment.out,scanned_lot:"
+msgid "Stock Lot"
+msgstr "Lot"
+
+msgctxt "field:stock.shipment.out,scanned_lot_ref:"
+msgid "Supplier Lot Ref."
+msgstr "Ref. Lot Proveïdor"
+
+msgctxt "field:stock.shipment.out.return,scanned_lot:"
+msgid "Stock Lot"
+msgstr "Lot"
+
+msgctxt "field:stock.shipment.out.return,scanned_lot_ref:"
+msgid "Supplier Lot Ref."
+msgstr "Ref. Lot Proveïdor"
+
+msgctxt "help:stock.configuration,scanner_lot_creation:"
+msgid ""
+"If set to \"Search reference & create\" the system will search the reference"
+" introduced in the lot and will create one if its not found. If set to "
+"\"Always\" it will create a lot even if one with thesame number exists."
+msgstr ""
+"Si es marca \"Cerca referencia i crea\" es buscarà la referència introduïda "
+"al sistema i se'n crearà una en cas de que aquesta no existeixi. Si es marca"
+" \"Sempre\" es crearà un lot encara que ja n'existeixi un amb el mateix "
+"nombre. "
+
+msgctxt "help:stock.shipment.in,scanned_lot_ref:"
+msgid "Supplier's lot reference."
+msgstr "Referència del lot del proveïdor"
+
+msgctxt "help:stock.shipment.in.return,scanned_lot_ref:"
+msgid "Supplier's lot reference."
+msgstr "Referència del lot del proveïdor"
+
+msgctxt "help:stock.shipment.out,scanned_lot_ref:"
+msgid "Supplier's lot reference."
+msgstr "Referència del lot del proveïdor"
+
+msgctxt "help:stock.shipment.out.return,scanned_lot_ref:"
+msgid "Supplier's lot reference."
+msgstr "Referència del lot del proveïdor"
+
+msgctxt "selection:stock.configuration,scanner_lot_creation:"
+msgid "Always"
+msgstr "Sempre"
+
+msgctxt "selection:stock.configuration,scanner_lot_creation:"
+msgid "Search reference & create"
+msgstr "Cerca referencia i crea"
