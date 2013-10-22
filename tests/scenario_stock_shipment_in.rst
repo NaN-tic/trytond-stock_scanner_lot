@@ -145,8 +145,12 @@ Create product::
 Get stock locations::
 
     >>> StockConfig = Model.get('stock.configuration')
+    >>> lot_seq = Sequence(name=str(today.year), code='stock.lot',
+    ...     company=company)
+    >>> lot_seq.save()
     >>> stock_config = StockConfig(1)
     >>> stock_config.scanner_lot_creation = 'search-create'
+    >>> stock_config.lot_sequence = lot_seq
     >>> stock_config.save()
     >>> Location = Model.get('stock.location')
     >>> warehouse_loc, = Location.find([('code', '=', 'WH')])

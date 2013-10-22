@@ -77,17 +77,26 @@ class ShipmentIn(StockScanMixin):
 
             lot = None
             lot_ref = move.shipment.scanned_lot_ref
+            input_lot = lot_ref and len(lot_ref) > 0
 
-            if lot_creation == 'search-create' and lot_ref:
-                lots = Lot.search([('number', '=', lot_ref)])
+            lot_required = move.product.lot_is_required(move.from_location,
+                    move.to_location)
+
+            if lot_creation == 'search-create' and input_lot:
+                lots = Lot.search([('supplier_ref', '=', lot_ref)])
                 if lots:
                     lot = lots[0]
+                else:
+                    lot_required = True
 
-            if lot_creation == 'always' or not lot and lot_ref:
-                lot, = Lot.create([{
-                    'number': lot_ref,
-                    'product': move.shipment.scanned_product,
-                }])
+            if lot_required and not lot:
+                if move.lot and not input_lot:
+                    lot = move.lot
+                else:
+                    lot = Lot(product=move.shipment.scanned_product)
+                    if input_lot:
+                        lot.supplier_ref = lot_ref
+                    lot.save()
 
             if move.lot and move.lot != lot:
                 pending = move.pending_quantity
