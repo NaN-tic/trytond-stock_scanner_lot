@@ -2,7 +2,7 @@
 <!-- The COPYRIGHT file at the top level of this repository contains the full
      copyright notices and license terms. -->
 <data>
-    <xpath expr="//label[@name='scanner_fill_quantity']" position="before">
+    <xpath expr="//group[@id='scanner']" position="inside">
             <label name="scanner_lot_creation"/>
             <field name="scanner_lot_creation"/>
     </xpath>
