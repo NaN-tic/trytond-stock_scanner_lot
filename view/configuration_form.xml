@@ -3,7 +3,7 @@
      copyright notices and license terms. -->
 <data>
     <xpath expr="//group[@id='scanner']" position="inside">
-            <label name="scanner_lot_creation"/>
-            <field name="scanner_lot_creation"/>
+        <label name="scanner_lot_creation"/>
+        <field name="scanner_lot_creation"/>
     </xpath>
 </data>
