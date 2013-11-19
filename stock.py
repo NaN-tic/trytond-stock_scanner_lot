@@ -97,8 +97,7 @@ class ShipmentIn(StockScanMixin):
                     if input_lot:
                         lot.supplier_ref = lot_ref
                     lot.save()
-
-            if move.lot and move.lot != lot:
+            if move.lot and lot and move.lot != lot:
                 pending = move.pending_quantity
                 move.quantity = move.received_quantity
                 move.save()
@@ -109,7 +108,8 @@ class ShipmentIn(StockScanMixin):
                     'lot': None,
                 })
             move.received_quantity = (move.received_quantity or 0.0) + qty
-            move.lot = lot
+            if lot:
+                move.lot = lot
 
             if move.shipment.scanned_unit_price:
                 move.unit_price = move.shipment.scanned_unit_price
