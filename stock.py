@@ -89,7 +89,7 @@ class ShipmentIn(StockScanMixin):
                 else:
                     lot_required = True
 
-            if lot_required and not lot:
+            if (lot_required or lot_creation == 'always') and not lot:
                 if move.lot and not input_lot:
                     lot = move.lot
                 else:
@@ -97,6 +97,7 @@ class ShipmentIn(StockScanMixin):
                     if input_lot:
                         lot.supplier_ref = lot_ref
                     lot.save()
+
             if move.lot and lot and move.lot != lot:
                 pending = move.pending_quantity
                 move.quantity = move.received_quantity
