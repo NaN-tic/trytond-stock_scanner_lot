@@ -16,6 +16,7 @@ class Configuration:
     __name__ = 'stock.configuration'
 
     scanner_lot_creation = fields.Property(fields.Selection([
+            (None, ''),
             ('search-create', 'Search reference & create'),
             ('always', 'Always')
             ], 'Lot Creation', required=False,
