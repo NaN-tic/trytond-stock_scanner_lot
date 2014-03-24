@@ -189,22 +189,6 @@ Set the shipment state to waiting::
     >>> move.pending_quantity == move.quantity
     True
 
-Make 1 unit of the product available::
-
-    >>> incoming_move = StockMove()
-    >>> incoming_move.product = product
-    >>> incoming_move.uom = unit
-    >>> incoming_move.quantity = 2
-    >>> incoming_move.from_location = supplier_loc
-    >>> incoming_move.to_location = storage_loc
-    >>> incoming_move.planned_date = today
-    >>> incoming_move.effective_date = today
-    >>> incoming_move.company = company
-    >>> incoming_move.unit_price = Decimal('1')
-    >>> incoming_move.currency = currency
-    >>> incoming_move.save()
-    >>> StockMove.do([incoming_move.id], config.context)
-
 Set 2 lots::
 
     >>> Lot = Model.get('stock.lot')
@@ -214,6 +198,38 @@ Set 2 lots::
     ...     lot.save()
     ...     lots.append(lot)
     >>> lot1, lot2 = lots
+
+
+Make 1 unit of the product available::
+
+    >>> incoming_move = StockMove()
+    >>> incoming_move.product = product
+    >>> incoming_move.uom = unit
+    >>> incoming_move.quantity = 10
+    >>> incoming_move.lot = lot1
+    >>> incoming_move.from_location = supplier_loc
+    >>> incoming_move.to_location = storage_loc
+    >>> incoming_move.planned_date = today
+    >>> incoming_move.effective_date = today
+    >>> incoming_move.company = company
+    >>> incoming_move.unit_price = Decimal('1')
+    >>> incoming_move.currency = currency
+    >>> incoming_move.save()
+    >>> StockMove.do([incoming_move.id], config.context)
+    >>> incoming_move = StockMove()
+    >>> incoming_move.product = product
+    >>> incoming_move.uom = unit
+    >>> incoming_move.quantity = 10
+    >>> incoming_move.lot = lot2
+    >>> incoming_move.from_location = supplier_loc
+    >>> incoming_move.to_location = storage_loc
+    >>> incoming_move.planned_date = today
+    >>> incoming_move.effective_date = today
+    >>> incoming_move.company = company
+    >>> incoming_move.unit_price = Decimal('1')
+    >>> incoming_move.currency = currency
+    >>> incoming_move.save()
+    >>> StockMove.do([incoming_move.id], config.context)
 
 Scan products and assign it::
 
