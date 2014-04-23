@@ -112,9 +112,6 @@ class ShipmentIn(StockScanMixin):
             move.received_quantity = (move.received_quantity or 0.0) + qty
             if lot:
                 move.lot = lot
-
-            if move.shipment.scanned_unit_price:
-                move.unit_price = move.shipment.scanned_unit_price
             move.save()
 
     def get_matching_moves(self):
