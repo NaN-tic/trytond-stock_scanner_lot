@@ -8,7 +8,6 @@ from trytond.modules.stock_scanner.stock import MIXIN_STATES
 
 __all__ = ['Configuration', 'ShipmentIn', 'ShipmentInReturn', 'ShipmentOut',
     'ShipmentOutReturn']
-
 __metaclass__ = PoolMeta
 
 
@@ -28,19 +27,20 @@ class Configuration:
 
 class StockScanMixin(object):
 
-    scanned_lot_ref = fields.Char('Supplier Lot Ref.', depends=['state'],
-        states=MIXIN_STATES, help="Supplier's lot reference.")
-    scanned_lot = fields.Many2One('stock.lot', 'Stock Lot',
-        states=MIXIN_STATES, depends=['state', 'scanned_product'],
-        domain=[('product', '=', Eval('scanned_product'))],
-        )
+    scanned_lot_ref = fields.Char('Supplier Lot Ref.',
+        states=MIXIN_STATES, depends=['state'],
+        help="Supplier's lot reference.")
+    scanned_lot = fields.Many2One('stock.lot', 'Stock Lot', domain=[
+            ('product', '=', Eval('scanned_product')),
+            ],
+        states=MIXIN_STATES, depends=['state', 'scanned_product'])
 
     @classmethod
     def clear_scan_values(cls, shipments):
         cls.write(shipments, {
-            'scanned_lot_ref': None,
-            'scanned_lot': None,
-        })
+                'scanned_lot_ref': None,
+                'scanned_lot': None,
+                })
         super(StockScanMixin, cls).clear_scan_values(shipments)
 
     @classmethod
@@ -104,11 +104,11 @@ class ShipmentIn(StockScanMixin):
                 move.quantity = move.received_quantity
                 move.save()
                 move, = Move.copy([move], {
-                    'quantity': pending,
-                    'received_quantity': 0,
-                    'state': move.state,
-                    'lot': None,
-                })
+                        'quantity': pending,
+                        'received_quantity': 0,
+                        'state': move.state,
+                        'lot': None,
+                        })
             move.received_quantity = (move.received_quantity or 0.0) + qty
             if lot:
                 move.lot = lot
@@ -150,11 +150,11 @@ class ShipmentOut(StockScanMixin):
                 move.quantity = move.received_quantity
                 move.save()
                 move, = Move.copy([move], {
-                    'quantity': pending,
-                    'received_quantity': 0,
-                    'state': move.state,
-                    'lot': None,
-                })
+                        'quantity': pending,
+                        'received_quantity': 0,
+                        'state': move.state,
+                        'lot': None,
+                        })
 
             move.received_quantity = (move.received_quantity or 0.0) + qty
             move.lot = lot
