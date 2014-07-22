@@ -138,11 +138,12 @@ Create product::
     >>> template.cost_price = Decimal('8')
     >>> template.account_expense = expense
     >>> template.account_revenue = revenue
+    >>> template.purchasable = True
     >>> template.save()
     >>> product.template = template
     >>> product.save()
 
-Get stock locations::
+Configure stock::
 
     >>> StockConfig = Model.get('stock.configuration')
     >>> lot_seq = Sequence(name=str(today.year), code='stock.lot',
@@ -152,36 +153,39 @@ Get stock locations::
     >>> stock_config.scanner_lot_creation = 'search-create'
     >>> stock_config.lot_sequence = lot_seq
     >>> stock_config.save()
-    >>> Location = Model.get('stock.location')
-    >>> warehouse_loc, = Location.find([('code', '=', 'WH')])
-    >>> supplier_loc, = Location.find([('code', '=', 'SUP')])
-    >>> customer_loc, = Location.find([('code', '=', 'CUS')])
-    >>> output_loc, = Location.find([('code', '=', 'OUT')])
-    >>> input_loc, = Location.find([('code', '=', 'IN')])
-    >>> storage_loc, = Location.find([('code', '=', 'STO')])
 
-Create Shipment In::
+Create payment term::
 
+    >>> PaymentTerm = Model.get('account.invoice.payment_term')
+    >>> PaymentTermLine = Model.get('account.invoice.payment_term.line')
+    >>> payment_term = PaymentTerm(name='Direct')
+    >>> payment_term_line = PaymentTermLine(type='remainder', days=0)
+    >>> payment_term.lines.append(payment_term_line)
+    >>> payment_term.save()
+
+Create a purchase::
+
+    >>> Purchase = Model.get('purchase.purchase')
+    >>> purchase = Purchase()
+    >>> purchase.party = supplier
+    >>> purchase.payment_term = payment_term
+    >>> purchase_line = purchase.lines.new()
+    >>> purchase_line.product = product
+    >>> purchase_line.quantity = 10
+    >>> purchase.save()
+    >>> purchase.click('quote')
+    >>> purchase.click('confirm')
+    >>> move, = purchase.moves
+
+Create a shipment to receive the products::
+
+    >>> Move = Model.get('stock.move')
     >>> ShipmentIn = Model.get('stock.shipment.in')
     >>> shipment_in = ShipmentIn()
-    >>> shipment_in.planned_date = today
     >>> shipment_in.supplier = supplier
-    >>> shipment_in.warehouse = warehouse_loc
-    >>> shipment_in.company = company
-
-Add a product to the shipment::
-
-    >>> StockMove = Model.get('stock.move')
-    >>> move = StockMove()
-    >>> shipment_in.incoming_moves.append(move)
-    >>> move.product = product
-    >>> move.uom =unit
-    >>> move.quantity = 10
-    >>> move.from_location = supplier_loc
-    >>> move.to_location = input_loc
-    >>> move.company = company
-    >>> move.unit_price = Decimal('1')
-    >>> move.currency = currency
+    >>> for move in purchase.moves:
+    ...     incoming_move = Move(id=move.id)
+    ...     shipment_in.incoming_moves.append(incoming_move)
     >>> shipment_in.save()
 
 Scan products and assign it::
@@ -189,9 +193,7 @@ Scan products and assign it::
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
     >>> shipment_in.scanned_lot_ref = '1'
-    >>> shipment_in.save()
-    >>> ShipmentIn.scan([shipment_in.id], config.context)
-    >>> shipment_in.reload()
+    >>> shipment_in.click('scan')
     >>> move, = shipment_in.pending_moves
     >>> move.received_quantity == 1.0
     True
@@ -208,9 +210,7 @@ Scan products and assign it::
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
     >>> shipment_in.scanned_lot_ref = '1'
-    >>> shipment_in.save()
-    >>> ShipmentIn.scan([shipment_in.id], config.context)
-    >>> shipment_in.reload()
+    >>> shipment_in.click('scan')
     >>> move, = shipment_in.pending_moves
     >>> move.received_quantity == 2.0
     True
@@ -221,9 +221,7 @@ Scan products and assign it::
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
     >>> shipment_in.scanned_lot_ref = '2'
-    >>> shipment_in.save()
-    >>> ShipmentIn.scan([shipment_in.id], config.context)
-    >>> shipment_in.reload()
+    >>> shipment_in.click('scan')
     >>> len(shipment_in.pending_moves)
     1
     >>> len(shipment_in.incoming_moves)

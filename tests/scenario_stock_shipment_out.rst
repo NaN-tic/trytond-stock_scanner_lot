@@ -138,47 +138,45 @@ Create product::
     >>> template.cost_price = Decimal('8')
     >>> template.account_expense = expense
     >>> template.account_revenue = revenue
+    >>> template.salable = True
     >>> template.save()
     >>> product.template = template
     >>> product.save()
 
 Get stock locations::
 
+
     >>> Location = Model.get('stock.location')
-    >>> warehouse_loc, = Location.find([('code', '=', 'WH')])
-    >>> supplier_loc, = Location.find([('code', '=', 'SUP')])
-    >>> customer_loc, = Location.find([('code', '=', 'CUS')])
-    >>> output_loc, = Location.find([('code', '=', 'OUT')])
     >>> storage_loc, = Location.find([('code', '=', 'STO')])
 
-Create Shipment Out::
+Create payment term::
 
-    >>> ShipmentOut = Model.get('stock.shipment.out')
-    >>> shipment_out = ShipmentOut()
-    >>> shipment_out.planned_date = today
-    >>> shipment_out.customer = customer
-    >>> shipment_out.warehouse = warehouse_loc
-    >>> shipment_out.company = company
+    >>> PaymentTerm = Model.get('account.invoice.payment_term')
+    >>> PaymentTermLine = Model.get('account.invoice.payment_term.line')
+    >>> payment_term = PaymentTerm(name='Direct')
+    >>> payment_term_line = PaymentTermLine(type='remainder', days=0)
+    >>> payment_term.lines.append(payment_term_line)
+    >>> payment_term.save()
 
-Add a product to the shipment::
+Create a sale::
 
-    >>> StockMove = Model.get('stock.move')
-    >>> move = StockMove()
-    >>> shipment_out.outgoing_moves.append(move)
-    >>> move.product = product
-    >>> move.uom =unit
-    >>> move.quantity = 10
-    >>> move.from_location = output_loc
-    >>> move.to_location = customer_loc
-    >>> move.company = company
-    >>> move.unit_price = Decimal('1')
-    >>> move.currency = currency
-    >>> shipment_out.save()
+    >>> Sale = Model.get('sale.sale')
+    >>> sale = Sale()
+    >>> sale.party = customer
+    >>> sale.payment_term = payment_term
+    >>> sale.invoice_method = 'order'
+    >>> sale_line = sale.lines.new()
+    >>> sale_line.product = product
+    >>> sale_line.quantity = 10
+    >>> sale.save()
+    >>> sale.click('quote')
+    >>> sale.click('confirm')
+    >>> sale.click('process')
 
-Set the shipment state to waiting::
 
-    >>> ShipmentOut.wait([shipment_out.id], config.context)
-    >>> shipment_out.reload()
+There is a shipment waiting::
+
+    >>> shipment_out, = sale.shipments
     >>> len(shipment_out.outgoing_moves)
     1
     >>> len(shipment_out.inventory_moves)
@@ -186,10 +184,10 @@ Set the shipment state to waiting::
     >>> len(shipment_out.pending_moves)
     1
     >>> move, = shipment_out.pending_moves
-    >>> move.pending_quantity == move.quantity
-    True
+    >>> move.pending_quantity
+    10.0
 
-Set 2 lots::
+Create 2 lots::
 
     >>> Lot = Model.get('stock.lot')
     >>> lots = []
@@ -199,46 +197,12 @@ Set 2 lots::
     ...     lots.append(lot)
     >>> lot1, lot2 = lots
 
-
-Make 1 unit of the product available::
-
-    >>> incoming_move = StockMove()
-    >>> incoming_move.product = product
-    >>> incoming_move.uom = unit
-    >>> incoming_move.quantity = 10
-    >>> incoming_move.lot = lot1
-    >>> incoming_move.from_location = supplier_loc
-    >>> incoming_move.to_location = storage_loc
-    >>> incoming_move.planned_date = today
-    >>> incoming_move.effective_date = today
-    >>> incoming_move.company = company
-    >>> incoming_move.unit_price = Decimal('1')
-    >>> incoming_move.currency = currency
-    >>> incoming_move.save()
-    >>> StockMove.do([incoming_move.id], config.context)
-    >>> incoming_move = StockMove()
-    >>> incoming_move.product = product
-    >>> incoming_move.uom = unit
-    >>> incoming_move.quantity = 10
-    >>> incoming_move.lot = lot2
-    >>> incoming_move.from_location = supplier_loc
-    >>> incoming_move.to_location = storage_loc
-    >>> incoming_move.planned_date = today
-    >>> incoming_move.effective_date = today
-    >>> incoming_move.company = company
-    >>> incoming_move.unit_price = Decimal('1')
-    >>> incoming_move.currency = currency
-    >>> incoming_move.save()
-    >>> StockMove.do([incoming_move.id], config.context)
-
 Scan products and assign it::
 
     >>> shipment_out.scanned_product = product
     >>> shipment_out.scanned_quantity = 1.0
     >>> shipment_out.scanned_lot = lot1
-    >>> shipment_out.save()
-    >>> ShipmentOut.scan([shipment_out.id], config.context)
-    >>> shipment_out.reload()
+    >>> shipment_out.click('scan')
     >>> move, = shipment_out.pending_moves
     >>> move.received_quantity == 1.0
     True
@@ -255,25 +219,10 @@ Scan products and assign it::
     >>> shipment_out.scanned_product = product
     >>> shipment_out.scanned_quantity = 1.0
     >>> shipment_out.scanned_lot = lot2
-    >>> shipment_out.save()
-    >>> ShipmentOut.scan([shipment_out.id], config.context)
-    >>> shipment_out.reload()
+    >>> shipment_out.click('scan')
     >>> len(shipment_out.pending_moves)
     1
     >>> len(shipment_out.inventory_moves)
     2
-
-Set the state as Done::
-
-    >>> ShipmentOut.assign_try([shipment_out.id], config.context)
-    True
-    >>> ShipmentOut.pack([shipment_out.id], config.context)
-    >>> ShipmentOut.done([shipment_out.id], config.context)
-    >>> shipment_out.reload()
-    >>> len(shipment_out.outgoing_moves)
-    2
-    >>> len(shipment_out.inventory_moves)
-    2
-    >>> sum([m.quantity for m in shipment_out.inventory_moves]) == \
-    ...     sum([m.quantity for m in shipment_out.outgoing_moves])
+    >>> sorted([m.lot for m in shipment_out.inventory_moves]) == [lot1, lot2]
     True
