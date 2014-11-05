@@ -175,6 +175,7 @@ Create a purchase::
     >>> purchase.save()
     >>> purchase.click('quote')
     >>> purchase.click('confirm')
+    >>> purchase.click('process')
     >>> move, = purchase.moves
 
 Create a shipment to receive the products::
