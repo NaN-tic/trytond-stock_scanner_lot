@@ -2,8 +2,10 @@
 <!-- The COPYRIGHT file at the top level of this repository contains the full
      copyright notices and license terms. -->
 <data>
-    <xpath expr="//label[@name='scanned_quantity']" position="before">
-        <label name="scanned_lot_ref"/>
-        <field name="scanned_lot_ref"/>
+    <xpath expr="//field[@name='scanned_quantity']" position="after">
+        <label name="scanned_lot_number"/>
+        <field name="scanned_lot_number"/>
+        <label name="scanned_lot"/>
+        <field name="scanned_lot"/>
     </xpath>
 </data>

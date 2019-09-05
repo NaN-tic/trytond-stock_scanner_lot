@@ -3,7 +3,9 @@
      copyright notices and license terms. -->
 <data>
     <xpath expr="//field[@name='scanned_quantity']" position="after">
-            <label name="scanned_lot"/>
-            <field name="scanned_lot"/>
+        <label name="scanned_lot_number"/>
+        <field name="scanned_lot_number"/>
+        <label name="scanned_lot"/>
+        <field name="scanned_lot"/>
     </xpath>
 </data>

@@ -12,6 +12,12 @@ Imports::
     >>> from dateutil.relativedelta import relativedelta
     >>> from decimal import Decimal
     >>> from proteus import config, Model, Wizard
+    >>> from trytond.modules.company.tests.tools import create_company, \
+    ...     get_company
+    >>> from trytond.modules.account.tests.tools import create_fiscalyear, \
+    ...     create_chart, get_accounts, create_tax, set_tax_code
+    >>> from trytond.modules.account_invoice.tests.tools import \
+    ...     set_fiscalyear_invoice_sequences, create_payment_term
     >>> today = datetime.date.today()
 
 Create database::
@@ -19,38 +25,18 @@ Create database::
     >>> config = config.set_trytond()
     >>> config.pool.test = True
 
-Install stock Module::
+Install stock_scanner_lot  Module::
 
-    >>> Module = Model.get('ir.module.module')
+    >>> Module = Model.get('ir.module')
     >>> modules = Module.find([('name', '=', 'stock_scanner_lot')])
     >>> Module.install([x.id for x in modules], config.context)
-    >>> Wizard('ir.module.module.install_upgrade').execute('upgrade')
+    >>> Wizard('ir.module.install_upgrade').execute('upgrade')
 
 Create company::
 
-    >>> Currency = Model.get('currency.currency')
-    >>> CurrencyRate = Model.get('currency.currency.rate')
-    >>> Company = Model.get('company.company')
-    >>> Party = Model.get('party.party')
-    >>> company_config = Wizard('company.company.config')
-    >>> company_config.execute('company')
-    >>> company = company_config.form
-    >>> party = Party(name='OPENLABS')
-    >>> party.save()
-    >>> company.party = party
-    >>> currencies = Currency.find([('code', '=', 'EUR')])
-    >>> if not currencies:
-    ...     currency = Currency(name='Euro', symbol=u'€', code='EUR',
-    ...         rounding=Decimal('0.01'), mon_grouping='[3, 3, 0]',
-    ...         mon_decimal_point=',')
-    ...     currency.save()
-    ...     CurrencyRate(date=today + relativedelta(month=1, day=1),
-    ...         rate=Decimal('1.0'), currency=currency).save()
-    ... else:
-    ...     currency, = currencies
-    >>> company.currency = currency
-    >>> company_config.execute('add')
-    >>> company, = Company.find()
+    >>> _ = create_company()
+    >>> company = get_company()
+    >>> party = company.party
 
 Reload the context::
 
@@ -59,56 +45,21 @@ Reload the context::
 
 Create fiscal year::
 
-    >>> FiscalYear = Model.get('account.fiscalyear')
-    >>> Sequence = Model.get('ir.sequence')
-    >>> SequenceStrict = Model.get('ir.sequence.strict')
-    >>> fiscalyear = FiscalYear(name=str(today.year))
-    >>> fiscalyear.start_date = today + relativedelta(month=1, day=1)
-    >>> fiscalyear.end_date = today + relativedelta(month=12, day=31)
-    >>> fiscalyear.company = company
-    >>> post_move_seq = Sequence(name=str(today.year), code='account.move',
-    ...     company=company)
-    >>> post_move_seq.save()
-    >>> fiscalyear.post_move_sequence = post_move_seq
-    >>> invoice_seq = SequenceStrict(name=str(today.year),
-    ...     code='account.invoice', company=company)
-    >>> invoice_seq.save()
-    >>> fiscalyear.out_invoice_sequence = invoice_seq
-    >>> fiscalyear.in_invoice_sequence = invoice_seq
-    >>> fiscalyear.out_credit_note_sequence = invoice_seq
-    >>> fiscalyear.in_credit_note_sequence = invoice_seq
-    >>> fiscalyear.save()
-    >>> FiscalYear.create_period([fiscalyear.id], config.context)
+    >>> fiscalyear = set_fiscalyear_invoice_sequences(
+    ...     create_fiscalyear(company))
+    >>> fiscalyear.click('create_period')
+    >>> period = fiscalyear.periods[0]
 
 Create chart of accounts::
 
-    >>> AccountTemplate = Model.get('account.account.template')
-    >>> Account = Model.get('account.account')
-    >>> account_template, = AccountTemplate.find([('parent', '=', None)])
-    >>> create_chart = Wizard('account.create_chart')
-    >>> create_chart.execute('account')
-    >>> create_chart.form.account_template = account_template
-    >>> create_chart.form.company = company
-    >>> create_chart.execute('create_account')
-    >>> receivable, = Account.find([
-    ...         ('kind', '=', 'receivable'),
-    ...         ('company', '=', company.id),
-    ...         ])
-    >>> payable, = Account.find([
-    ...         ('kind', '=', 'payable'),
-    ...         ('company', '=', company.id),
-    ...         ])
-    >>> revenue, = Account.find([
-    ...         ('kind', '=', 'revenue'),
-    ...         ('company', '=', company.id),
-    ...         ])
-    >>> expense, = Account.find([
-    ...         ('kind', '=', 'expense'),
-    ...         ('company', '=', company.id),
-    ...         ])
-    >>> create_chart.form.account_receivable = receivable
-    >>> create_chart.form.account_payable = payable
-    >>> create_chart.execute('create_properties')
+    >>> _ = create_chart(company)
+    >>> accounts = get_accounts(company)
+    >>> receivable = accounts['receivable']
+    >>> payable = accounts['payable']
+    >>> revenue = accounts['revenue']
+    >>> expense = accounts['expense']
+    >>> account_tax = accounts['tax']
+    >>> account_cash = accounts['cash']
 
 Create supplier::
 
@@ -146,21 +97,19 @@ Create product::
 Configure stock::
 
     >>> StockConfig = Model.get('stock.configuration')
-    >>> lot_seq = Sequence(name=str(today.year), code='stock.lot',
-    ...     company=company)
-    >>> lot_seq.save()
     >>> stock_config = StockConfig(1)
+    >>> stock_config.scanner_on_shipment_in = True
     >>> stock_config.scanner_lot_creation = 'search-create'
-    >>> stock_config.lot_sequence = lot_seq
     >>> stock_config.save()
+
+Get stock locations::
+
+    >>> Location = Model.get('stock.location')
+    >>> storage_loc, = Location.find([('code', '=', 'STO')])
 
 Create payment term::
 
-    >>> PaymentTerm = Model.get('account.invoice.payment_term')
-    >>> PaymentTermLine = Model.get('account.invoice.payment_term.line')
-    >>> payment_term = PaymentTerm(name='Direct')
-    >>> payment_term_line = PaymentTermLine(type='remainder', days=0)
-    >>> payment_term.lines.append(payment_term_line)
+    >>> payment_term = create_payment_term()
     >>> payment_term.save()
 
 Create a purchase::
@@ -191,42 +140,96 @@ Create a shipment to receive the products::
 
 Scan products and assign it::
 
+    >>> LotType = Model.get('stock.lot.type')
+    >>> lot_type, = LotType.find([('code', '=', 'supplier')], limit=1)
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
-    >>> shipment_in.scanned_lot_ref = '1'
+    >>> shipment_in.save()
     >>> shipment_in.click('scan')
     >>> move, = shipment_in.pending_moves
-    >>> move.received_quantity == 1.0
+    >>> move.scanned_quantity == 1.0
     True
     >>> move.pending_quantity == 9.0
     True
-    >>> move.lot.number == '1'
+    >>> move.lot == None
     True
     >>> shipment_in.scanned_product == None
     True
-    >>> shipment_in.scanned_quantity == 0.0
+    >>> shipment_in.scanned_quantity == None
     True
-    >>> shipment_in.scanned_lot_ref == None
+    >>> shipment_in.scanned_lot_number == None
     True
+    >>> product.template.lot_required.append(lot_type)
+    >>> product.template.save()
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
-    >>> shipment_in.scanned_lot_ref = '1'
-    >>> shipment_in.click('scan')
-    >>> move, = shipment_in.pending_moves
-    >>> move.received_quantity == 2.0
-    True
-    >>> move.pending_quantity == 8.0
-    True
-    >>> move.lot.number == '1'
-    True
-    >>> shipment_in.scanned_product = product
-    >>> shipment_in.scanned_quantity = 1.0
-    >>> shipment_in.scanned_lot_ref = '2'
+    >>> shipment_in.scanned_lot_number = '1'
+    >>> shipment_in.save()
     >>> shipment_in.click('scan')
     >>> len(shipment_in.pending_moves)
     1
     >>> len(shipment_in.incoming_moves)
     2
+    >>> move = shipment_in.incoming_moves[0]
+    >>> move.scanned_quantity == 1.0
+    True
+    >>> move.quantity == 1.0
+    True
+    >>> move.pending_quantity == 0.0
+    True
+    >>> move.lot.number == '1'
+    True
+    >>> shipment_in.scanned_product = product
+    >>> shipment_in.scanned_quantity = 1.0
+    >>> shipment_in.scanned_lot_number = '2'
+    >>> shipment_in.click('scan')
+    >>> len(shipment_in.pending_moves)
+    1
+    >>> len(shipment_in.incoming_moves)
+    3
+    >>> product.template.lot_required.pop() == lot_type
+    True
+    >>> product.template.save()
+    >>> shipment_in.scanned_product = product
+    >>> shipment_in.scanned_quantity = 3.0
+    >>> shipment_in.save()
+    >>> shipment_in.click('scan')
+    >>> len(shipment_in.pending_moves)
+    1
+    >>> len(shipment_in.incoming_moves)
+    3
+    >>> move = shipment_in.incoming_moves[2]
+    >>> move.scanned_quantity == 4.0
+    True
+    >>> move.pending_quantity == 4.0
+    True
+    >>> move.lot == None
+    True
+    >>> shipment_in.scanned_product = product
+    >>> shipment_in.scanned_quantity = 1.0
+    >>> shipment_in.scanned_lot_number = '2'
+    >>> shipment_in.click('scan')
+    >>> len(shipment_in.pending_moves)
+    1
+    >>> len(shipment_in.incoming_moves)
+    3
+    >>> move = shipment_in.incoming_moves[0]
+    >>> move.scanned_quantity == 2.0
+    True
+    >>> move.pending_quantity == 0.0
+    True
+    >>> stock_config.scanner_lot_creation = 'always'
+    >>> stock_config.save()
+    >>> shipment_in.scanned_product = product
+    >>> shipment_in.scanned_quantity = 3.0
+    >>> shipment_in.click('scan')
+    >>> len(shipment_in.pending_moves)
+    0
+    >>> len(shipment_in.incoming_moves)
+    4
+    >>> move = shipment_in.incoming_moves[0]
+    >>> move.lot.number == today.strftime('%Y-%m-%d')
+    True
 
 Set the state as Done::
 
@@ -235,17 +238,13 @@ Set the state as Done::
     >>> ShipmentIn.done([shipment_in.id], config.context)
     >>> shipment_in.reload()
     >>> len(shipment_in.incoming_moves)
-    2
+    4
     >>> len(shipment_in.inventory_moves)
-    2
+    4
     >>> len(shipment_in.pending_moves)
     0
     >>> sum([m.quantity for m in shipment_in.inventory_moves]) == \
     ...     sum([m.quantity for m in shipment_in.incoming_moves])
     True
-    >>> [x.number for x in Lot.find([])]
-    [u'1', u'2']
-
-
-
-
+    >>> [x.number for x in Lot.find([])] == [u'1', u'2', today.strftime('%Y-%m-%d')]
+    True
