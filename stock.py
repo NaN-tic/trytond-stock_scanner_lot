@@ -1,129 +1,171 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
 from trytond.model import fields
-from trytond.pyson import Eval
+from trytond.pyson import Bool, Eval, If
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.stock_scanner.stock import MIXIN_STATES
+from datetime import datetime
 
 
-__all__ = ['Configuration', 'ShipmentIn', 'ShipmentInReturn', 'ShipmentOut',
-    'ShipmentOutReturn']
-__metaclass__ = PoolMeta
+__all__ = ['Configuration', 'ShipmentIn', 'ShipmentOut',
+    'ShipmentInReturn', 'ShipmentOutReturn']
 
 
 class Configuration:
     __name__ = 'stock.configuration'
+    __metaclass__ = PoolMeta
 
     scanner_lot_creation = fields.Property(fields.Selection([
             (None, ''),
             ('search-create', 'Search reference & create'),
             ('always', 'Always')
             ], 'Lot Creation', required=False,
-        help='If set to "Search reference & create" the system will search the'
-        ' reference introduced in the lot and will create one if it''s not '
-        'found. If set to "Always" it will create a lot even if one with the'
-        'same number exists.'))
+        help='If set to "Search reference & create" the system will search '
+        'the reference introduced in the lot and will create one if it\'s not '
+        'found. If set to "Always" it will create a lot even if one with the '
+        'same number exists. All this always takes place if a scanned lot is '
+        'not selected.'))
 
 
 class StockScanMixin(object):
-
-    scanned_lot_ref = fields.Char('Supplier Lot Ref.',
-        states=MIXIN_STATES, depends=['state'],
-        help="Supplier's lot reference.")
+    scanned_lot_number = fields.Char('Scanned Lot Number', states={
+        'readonly': (Bool(Eval('scanned_lot', False))
+                    | ~Eval('state', 'draft').in_(['waiting', 'draft'])),
+        }, depends=['state', 'scanned_lot'],
+        help="Lot number of the lot that will be scanned.")
     scanned_lot = fields.Many2One('stock.lot', 'Stock Lot', domain=[
-            ('product', '=', Eval('scanned_product')),
+            If(Bool(Eval('scanned_product')),
+                ('product', '=', Eval('scanned_product')),
+                ()),
             ],
         states=MIXIN_STATES, depends=['state', 'scanned_product'])
 
-    @classmethod
-    def clear_scan_values(cls, shipments):
-        cls.write(shipments, {
-                'scanned_lot_ref': None,
-                'scanned_lot': None,
-                })
-        super(StockScanMixin, cls).clear_scan_values(shipments)
+    def clear_scan_values(self):
+        super(StockScanMixin, self).clear_scan_values()
+        self.scanned_lot_number = None
+        self.scanned_lot = None
 
-    @classmethod
-    def process_moves(cls, moves):
-        cls.process_in_moves(moves)
-        cls.process_out_moves(moves)
+    def get_processed_move(self):
+        move = super(StockScanMixin, self).get_processed_move()
+        move.lot = self.scanned_lot
+        return move
 
-    @classmethod
-    def process_in_moves(cls, moves):
-        pass
+    @fields.depends('scanned_lot')
+    def on_change_scanned_lot(self):
+        if self.scanned_lot:
+            self.scanned_lot_number = self.scanned_lot.number
 
-    @classmethod
-    def process_out_moves(cls, moves):
-        pass
+    @fields.depends('scanned_lot', 'scanned_lot_number', 'scanned_product')
+    def on_change_scanned_lot_number(self):
+        pool = Pool()
+        Lot = pool.get('stock.lot')
+        if not self.scanned_lot and self.scanned_lot_number:
+            lots = Lot.search([
+                ('number', '=', self.scanned_lot_number),
+                ('product', '=', self.scanned_product)
+                ], limit=1)
+            if lots:
+                self.scanned_lot, = lots
+
+    def _adjust_pending_moves(self):
+        """
+        If there aren't matching moves, a new one is created, then the amount
+        of one of the pending movements must be adjusted with the coincidence
+        of the product and the amount pending.
+        """
+        for move in self.pending_moves:
+            if (move.product == self.scanned_product
+                    and (move.pending_quantity - self.scanned_quantity) >= 0):
+                move.quantity -= self.scanned_quantity
+                move.save()
+                return move
+
+    def _is_needed_to_create_lot(self):
+        return False
+
+    def get_matching_moves(self):
+        """Get possible scanned move"""
+        moves = super(StockScanMixin, self).get_matching_moves()
+        match_moves = []
+        w_lot_moves = []
+        if self.scanned_lot_number:
+            if self._is_needed_to_create_lot():
+                return []
+            for move in moves:
+                if move.lot and self.scanned_lot == move.lot:
+                    match_moves.append(move)
+                elif not move.lot and not move.scanned_quantity:
+                    w_lot_moves.append(move)
+
+            if not match_moves:
+                no_pending_moves = list(set(self.get_pick_moves()) -
+                    set(self.pending_moves))
+                for move in no_pending_moves:
+                    if (move.product == self.scanned_product and
+                            move.lot == self.scanned_lot):
+                        match_moves.append(move)
+                        break
+            return match_moves or w_lot_moves
+
+        return moves
+
+    def process_moves(self, moves):
+        is_not_pending_move = len(moves) == 1 and not moves[0].pending_quantity
+        adjusted_move = None
+        if (not moves and self.scanned_quantity) or is_not_pending_move:
+            adjusted_move = self._adjust_pending_moves()
+            if is_not_pending_move:
+                moves[0].quantity += self.scanned_quantity
+        move = super(StockScanMixin, self).process_moves(moves)
+        if not move.origin and adjusted_move:
+            move.origin = adjusted_move.origin
+        if not move.lot:
+            move.lot = self.scanned_lot
+        if move._save_values:
+            move.save()
+        return move
 
 
 class ShipmentIn(StockScanMixin):
     __metaclass__ = PoolMeta
     __name__ = 'stock.shipment.in'
 
-    @classmethod
-    def process_in_moves(cls, moves):
+    def _is_needed_to_create_lot(self):
+
         pool = Pool()
         Config = pool.get('stock.configuration')
-        Move = pool.get('stock.move')
-        Lot = pool.get('stock.lot')
+
+        if not self.scanned_product:
+            return False
 
         config = Config(1)
-        lot_creation = config.scanner_lot_creation
+        lot_creation_method = config.scanner_lot_creation
+        lot_required = 'supplier' in {t.code for t in
+            self.scanned_product.template.lot_required}
+        return (lot_creation_method == 'always' or
+            (not self.scanned_lot and (lot_required
+                or (self.scanned_lot_number and lot_creation_method ==
+                    'search-create'))))
 
-        for move in moves:
-            qty = min(move.shipment.scanned_quantity, move.pending_quantity)
-            if qty == 0:
-                continue
+    def _create_lot(self):
+        pool = Pool()
+        Lot = pool.get('stock.lot')
+        default_lot_number = datetime.today().strftime('%Y-%m-%d')
+        lot_number = (self.scanned_lot_number or
+            default_lot_number)
+        lot = Lot()
+        lot.product = self.scanned_product
+        lot.number = lot_number
+        return lot
 
-            lot = None
-            lot_ref = move.shipment.scanned_lot_ref
-            input_lot = lot_ref and len(lot_ref) > 0
-
-            lot_required = move.product.lot_is_required(move.from_location,
-                    move.to_location)
-
-            if lot_creation == 'search-create' and input_lot:
-                lots = Lot.search([('supplier_ref', '=', lot_ref)])
-                if lots:
-                    lot = lots[0]
-                else:
-                    lot_required = True
-
-            if (lot_required or lot_creation == 'always') and not lot:
-                if move.lot and not input_lot:
-                    lot = move.lot
-                else:
-                    lot = Lot(product=move.shipment.scanned_product)
-                    if input_lot:
-                        lot.supplier_ref = lot_ref
-                    lot.save()
-
-            if move.lot and lot and move.lot != lot:
-                pending = move.pending_quantity
-                move.quantity = move.received_quantity
-                move.save()
-                move, = Move.copy([move], {
-                        'quantity': pending,
-                        'received_quantity': 0,
-                        'state': move.state,
-                        'lot': None,
-                        })
-            move.received_quantity = (move.received_quantity or 0.0) + qty
-            if lot:
-                move.lot = lot
-            move.save()
-
-    def get_matching_moves(self):
-        """Get possible scanned move"""
-        moves = super(ShipmentIn, self).get_matching_moves()
-        new_moves = []
-        for move in moves:
-            if move.lot and move.lot.number == self.scanned_lot_ref:
-                new_moves.insert(0, move)
-                continue
-            new_moves.append(move)
-        return new_moves
+    def process_moves(self, moves):
+        if not self.scanned_lot:
+            if self._is_needed_to_create_lot():
+                lot = self._create_lot()
+                self.scanned_lot = lot
+                self.save()
+                moves = []
+        return super(ShipmentIn, self).process_moves(moves)
 
 
 class ShipmentInReturn(ShipmentIn):
@@ -134,43 +176,6 @@ class ShipmentInReturn(ShipmentIn):
 class ShipmentOut(StockScanMixin):
     __metaclass__ = PoolMeta
     __name__ = 'stock.shipment.out'
-
-    @classmethod
-    def process_out_moves(cls, moves):
-        pool = Pool()
-        Move = pool.get('stock.move')
-        for move in moves:
-            qty = min(move.shipment.scanned_quantity, move.pending_quantity)
-            if qty == 0:
-                continue
-
-            lot = move.shipment.scanned_lot or move.lot or None
-            if move.lot and move.lot != lot:
-                pending = move.pending_quantity
-                move.quantity = move.received_quantity
-                move.save()
-                move, = Move.copy([move], {
-                        'quantity': pending,
-                        'received_quantity': 0,
-                        'state': move.state,
-                        'lot': None,
-                        })
-
-            move.received_quantity = (move.received_quantity or 0.0) + qty
-            move.lot = lot
-            move.save()
-
-    def get_matching_moves(self):
-        """Get possible scanned move"""
-        moves = super(ShipmentOut, self).get_matching_moves()
-        new_moves = []
-        for move in moves:
-            if self.scanned_lot and move.lot:
-                if self.scanned_lot == move.lot:
-                    new_moves.insert(0, move)
-                    continue
-            new_moves.append(move)
-        return new_moves
 
 
 class ShipmentOutReturn(ShipmentOut):
