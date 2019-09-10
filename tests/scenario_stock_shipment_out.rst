@@ -198,7 +198,7 @@ Scan products and assign it::
     >>> len(shipment_out.pending_moves)
     1
     >>> len(shipment_out.inventory_moves)
-    4
+    3
     >>> shipment_out.scanned_product = product
     >>> shipment_out.scanned_quantity = 1.0
     >>> shipment_out.scanned_lot = lot3
@@ -206,6 +206,6 @@ Scan products and assign it::
     >>> len(shipment_out.pending_moves)
     0
     >>> len(shipment_out.inventory_moves)
-    4
-    >>> sorted([m.lot for m in shipment_out.inventory_moves]) == [None, lot1, lot2, lot3]
+    3
+    >>> sorted([m.lot for m in shipment_out.inventory_moves]) == [lot1, lot2, lot3]
     True
