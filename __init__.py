@@ -7,6 +7,7 @@ from . import stock
 def register():
     Pool.register(
         stock.Configuration,
+        stock.ConfigurationScannerLotCreation,
         stock.ShipmentIn,
         stock.ShipmentInReturn,
         stock.ShipmentOut,

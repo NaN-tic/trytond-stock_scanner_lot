@@ -1,30 +1,79 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
-from trytond.model import fields
+from trytond import backend
+from trytond.model import ModelSQL, fields
 from trytond.pyson import Bool, Eval, If
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.stock_scanner.stock import MIXIN_STATES
 from datetime import datetime
+from trytond.tools.multivalue import migrate_property
+from trytond.modules.company.model import (
+    CompanyMultiValueMixin, CompanyValueMixin)
 
 
-__all__ = ['Configuration', 'ShipmentIn', 'ShipmentOut',
-    'ShipmentInReturn', 'ShipmentOutReturn']
+__all__ = ['Configuration', 'ConfigurationScannerLotCreation',
+    'ShipmentIn', 'ShipmentOut', 'ShipmentInReturn', 'ShipmentOutReturn']
 
-
-class Configuration:
-    __name__ = 'stock.configuration'
-    __metaclass__ = PoolMeta
-
-    scanner_lot_creation = fields.Property(fields.Selection([
+LOT_CREATION_MODES = [
             (None, ''),
             ('search-create', 'Search reference & create'),
             ('always', 'Always')
-            ], 'Lot Creation', required=False,
-        help='If set to "Search reference & create" the system will search '
-        'the reference introduced in the lot and will create one if it\'s not '
-        'found. If set to "Always" it will create a lot even if one with the '
-        'same number exists. All this always takes place if a scanned lot is '
-        'not selected.'))
+            ]
+
+
+class Configuration(CompanyMultiValueMixin, metaclass=PoolMeta):
+    __name__ = 'stock.configuration'
+
+    scanner_lot_creation = fields.MultiValue(fields.Selection(
+            LOT_CREATION_MODES, 'Lot Creation', required=False,
+            help='If set to "Search reference & create" the system will search '
+            'the reference introduced in the lot and will create one if it\'s not '
+            'found. If set to "Always" it will create a lot even if one with the '
+            'same number exists. All this always takes place if a scanned lot is '
+            'not selected.'))
+
+    @classmethod
+    def multivalue_model(cls, field):
+        pool = Pool()
+        if field == 'scanner_lot_creation':
+            return pool.get('stock.configuration.scanner_lot_creation')
+        return super(Configuration, cls).multivalue_model(field)
+
+    @classmethod
+    def default_scanner_lot_creation(cls, **pattern):
+        model = cls.multivalue_model('scanner_lot_creation')
+        return model.default_scanner_lot_creation()
+
+
+class ConfigurationScannerLotCreation(ModelSQL, CompanyValueMixin):
+    'Stock Configuration Scanner Lot Creation'
+    __name__ = 'stock.configuration.scanner_lot_creation'
+
+    scanner_lot_creation = fields.Selection(
+        LOT_CREATION_MODES, 'Lot Creation')
+
+    @classmethod
+    def __register__(cls, module_name):
+        TableHandler = backend.get('TableHandler')
+        exist = TableHandler.table_exist(cls._table)
+
+        super(ConfigurationScannerLotCreation, cls).__register__(module_name)
+
+        if not exist:
+            cls._migrate_property([], [], [])
+
+    @classmethod
+    def _migrate_property(cls, field_names, value_names, fields):
+        field_names.append('scanner_lot_creation')
+        value_names.append('scanner_lot_creation')
+        fields.append('company')
+        migrate_property(
+            'stock.configuration', field_names, cls, value_names,
+            fields=fields)
+
+    @classmethod
+    def default_scanner_lot_creation(cls):
+        return None
 
 
 class StockScanMixin(object):
@@ -126,8 +175,7 @@ class StockScanMixin(object):
         return move
 
 
-class ShipmentIn(StockScanMixin):
-    __metaclass__ = PoolMeta
+class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
     __name__ = 'stock.shipment.in'
 
     def _is_needed_to_create_lot(self):
@@ -168,16 +216,13 @@ class ShipmentIn(StockScanMixin):
         return super(ShipmentIn, self).process_moves(moves)
 
 
-class ShipmentInReturn(ShipmentIn):
-    __metaclass__ = PoolMeta
+class ShipmentInReturn(ShipmentIn, metaclass=PoolMeta):
     __name__ = 'stock.shipment.in.return'
 
 
-class ShipmentOut(StockScanMixin):
-    __metaclass__ = PoolMeta
+class ShipmentOut(StockScanMixin, metaclass=PoolMeta):
     __name__ = 'stock.shipment.out'
 
 
-class ShipmentOutReturn(ShipmentOut):
-    __metaclass__ = PoolMeta
+class ShipmentOutReturn(ShipmentOut, metaclass=PoolMeta):
     __name__ = 'stock.shipment.out.return'
