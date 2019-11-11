@@ -83,8 +83,6 @@ Create product::
     >>> template.type = 'goods'
     >>> template.list_price = Decimal('20')
     >>> template.cost_price = Decimal('8')
-    >>> template.account_expense = expense
-    >>> template.account_revenue = revenue
     >>> template.purchasable = True
     >>> template.save()
     >>> product.template = template
@@ -136,8 +134,6 @@ Create a shipment to receive the products::
 
 Scan products and assign it::
 
-    >>> LotType = Model.get('stock.lot.type')
-    >>> lot_type, = LotType.find([('code', '=', 'supplier')], limit=1)
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
     >>> shipment_in.save()
@@ -155,7 +151,7 @@ Scan products and assign it::
     True
     >>> shipment_in.scanned_lot_number == None
     True
-    >>> product.template.lot_required.append(lot_type)
+    >>> product.template.lot_required = ['supplier']
     >>> product.template.save()
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
@@ -183,7 +179,7 @@ Scan products and assign it::
     1
     >>> len(shipment_in.incoming_moves)
     3
-    >>> product.template.lot_required.pop() == lot_type
+    >>> product.template.lot_required == ['supplier']
     True
     >>> product.template.save()
     >>> shipment_in.scanned_product = product

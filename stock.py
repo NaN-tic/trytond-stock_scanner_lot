@@ -188,8 +188,8 @@ class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
 
         config = Config(1)
         lot_creation_method = config.scanner_lot_creation
-        lot_required = 'supplier' in {t.code for t in
-            self.scanned_product.template.lot_required}
+        lot_required = 'supplier' in (self.scanned_product.template.lot_required
+            or [])
         return (lot_creation_method == 'always' or
             (not self.scanned_lot and (lot_required
                 or (self.scanned_lot_number and lot_creation_method ==
