@@ -181,7 +181,6 @@ Scan products and assign it::
     3
     >>> product.template.lot_required == ['supplier']
     True
-    >>> product.template.save()
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 3.0
     >>> shipment_in.save()
@@ -189,13 +188,13 @@ Scan products and assign it::
     >>> len(shipment_in.pending_moves)
     1
     >>> len(shipment_in.incoming_moves)
-    3
+    4
     >>> move = shipment_in.incoming_moves[2]
-    >>> move.scanned_quantity == 4.0
+    >>> move.scanned_quantity == 1.0
     True
-    >>> move.pending_quantity == 4.0
+    >>> move.pending_quantity == 0.0
     True
-    >>> move.lot == None
+    >>> move.lot.number == '1'
     True
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
@@ -204,9 +203,9 @@ Scan products and assign it::
     >>> len(shipment_in.pending_moves)
     1
     >>> len(shipment_in.incoming_moves)
-    3
+    4
     >>> move = shipment_in.incoming_moves[0]
-    >>> move.scanned_quantity == 2.0
+    >>> move.scanned_quantity == 3.0
     True
     >>> move.pending_quantity == 0.0
     True
@@ -218,7 +217,7 @@ Scan products and assign it::
     >>> len(shipment_in.pending_moves)
     0
     >>> len(shipment_in.incoming_moves)
-    4
+    5
     >>> move = shipment_in.incoming_moves[0]
     >>> move.lot.number == today.strftime('%Y-%m-%d')
     True
@@ -226,17 +225,19 @@ Scan products and assign it::
 Set the state as Done::
 
     >>> Lot = Model.get('stock.lot')
+    >>> product.template.lot_required = []
+    >>> product.template.save()
     >>> ShipmentIn.receive([shipment_in.id], config.context)
     >>> ShipmentIn.done([shipment_in.id], config.context)
     >>> shipment_in.reload()
     >>> len(shipment_in.incoming_moves)
-    4
+    5
     >>> len(shipment_in.inventory_moves)
-    4
+    5
     >>> len(shipment_in.pending_moves)
     0
     >>> sum([m.quantity for m in shipment_in.inventory_moves]) == \
     ...     sum([m.quantity for m in shipment_in.incoming_moves])
     True
-    >>> [x.number for x in Lot.find([])] == [u'1', u'2', today.strftime('%Y-%m-%d')]
+    >>> [x.number for x in Lot.find([])] == ['1', '2', today.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')]
     True
