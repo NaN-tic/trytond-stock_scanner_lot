@@ -179,7 +179,7 @@ Scan products and assign it::
     1
     >>> len(shipment_in.incoming_moves)
     3
-    >>> product.template.lot_required == ['supplier']
+    >>> product.template.lot_required == ('supplier',)
     True
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 3.0
