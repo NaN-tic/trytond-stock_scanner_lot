@@ -12,7 +12,7 @@ from trytond.modules.company.model import (
 
 
 __all__ = ['Configuration', 'ConfigurationScannerLotCreation',
-    'ShipmentIn', 'ShipmentOut', 'ShipmentInReturn', 'ShipmentOutReturn']
+    'ShipmentIn', 'ShipmentOut', 'ShipmentOutReturn']
 
 LOT_CREATION_MODES = [
             (None, ''),
@@ -214,10 +214,6 @@ class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
                 self.save()
                 moves = []
         return super(ShipmentIn, self).process_moves(moves)
-
-
-class ShipmentInReturn(ShipmentIn, metaclass=PoolMeta):
-    __name__ = 'stock.shipment.in.return'
 
 
 class ShipmentOut(StockScanMixin, metaclass=PoolMeta):
