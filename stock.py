@@ -94,11 +94,6 @@ class StockScanMixin(object):
         self.scanned_lot_number = None
         self.scanned_lot = None
 
-    def get_processed_move(self):
-        move = super(StockScanMixin, self).get_processed_move()
-        move.lot = self.scanned_lot
-        return move
-
     @fields.depends('scanned_lot')
     def on_change_scanned_lot(self):
         if self.scanned_lot:
@@ -106,8 +101,8 @@ class StockScanMixin(object):
 
     @fields.depends('scanned_lot', 'scanned_lot_number', 'scanned_product')
     def on_change_scanned_lot_number(self):
-        pool = Pool()
-        Lot = pool.get('stock.lot')
+        Lot = Pool().get('stock.lot')
+
         if not self.scanned_lot and self.scanned_lot_number:
             lots = Lot.search([
                 ('number', '=', self.scanned_lot_number),
@@ -179,9 +174,7 @@ class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
     __name__ = 'stock.shipment.in'
 
     def _is_needed_to_create_lot(self):
-
-        pool = Pool()
-        Config = pool.get('stock.configuration')
+        Config = Pool().get('stock.configuration')
 
         if not self.scanned_product:
             return False
@@ -196,8 +189,8 @@ class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
                     'search-create'))))
 
     def _create_lot(self):
-        pool = Pool()
-        Lot = pool.get('stock.lot')
+        Lot = Pool().get('stock.lot')
+
         default_lot_number = datetime.today().strftime('%Y-%m-%d')
         lot_number = (self.scanned_lot_number or
             default_lot_number)
