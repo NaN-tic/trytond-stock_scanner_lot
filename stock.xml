@@ -30,5 +30,17 @@
             <field name="priority" eval="30"/>
             <field name="inherit" ref="stock.shipment_in_view_form"/>
         </record>
+
+        <!-- stock.move -->
+        <record model="ir.ui.view" id="move_view_form_pending">
+            <field name="model">stock.move</field>
+            <field name="inherit" ref="stock_scanner.move_view_form_pending"/>
+            <field name="name">move_form_pending</field>
+        </record>
+        <record model="ir.ui.view" id="move_view_tree_pending">
+            <field name="model">stock.move</field>
+            <field name="inherit" ref="stock_scanner.move_view_tree_pending"/>
+            <field name="name">move_tree_pending</field>
+        </record>
     </data>
 </tryton>
