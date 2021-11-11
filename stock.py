@@ -128,7 +128,7 @@ class StockScanMixin(object):
                 move.save()
                 return move
 
-    def _is_needed_to_create_lot(self):
+    def _is_needed_to_create_lot(self, moves=None):
         return False
 
     def get_matching_moves(self):
@@ -137,7 +137,7 @@ class StockScanMixin(object):
         match_moves = []
         w_lot_moves = []
         if self.scanned_lot_number:
-            if self._is_needed_to_create_lot():
+            if self._is_needed_to_create_lot(moves):
                 return []
             for move in moves:
                 if move.lot and self.scanned_lot == move.lot:
@@ -177,8 +177,7 @@ class StockScanMixin(object):
 class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
     __name__ = 'stock.shipment.in'
 
-    def _is_needed_to_create_lot(self):
-
+    def _is_needed_to_create_lot(self, moves=None):
         pool = Pool()
         Config = pool.get('stock.configuration')
 
@@ -206,12 +205,11 @@ class ShipmentIn(StockScanMixin, metaclass=PoolMeta):
         return lot
 
     def process_moves(self, moves):
-        if not self.scanned_lot:
-            if self._is_needed_to_create_lot():
-                lot = self._create_lot()
-                self.scanned_lot = lot
-                self.save()
-                moves = []
+        if not self.scanned_lot and self._is_needed_to_create_lot(moves):
+            lot = self._create_lot()
+            self.scanned_lot = lot
+            self.save()
+            moves = []
         return super(ShipmentIn, self).process_moves(moves)
 
 
