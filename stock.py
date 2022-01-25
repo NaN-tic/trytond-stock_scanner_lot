@@ -166,6 +166,8 @@ class StockScanMixin(object):
             if is_not_pending_move:
                 moves[0].quantity += self.scanned_quantity
         move = super(StockScanMixin, self).process_moves(moves)
+        if not move:
+            return
         if not move.origin and adjusted_move:
             move.origin = adjusted_move.origin
         if not move.lot:
