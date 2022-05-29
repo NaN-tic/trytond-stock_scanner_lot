@@ -19,7 +19,6 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences, create_payment_term
     >>> from trytond.tests.tools import activate_modules
-    >>> today = datetime.date.today()
 
 Install Stock Scanner Lot Module::
 
@@ -219,7 +218,7 @@ Scan products and assign it::
     >>> len(shipment_in.incoming_moves)
     5
     >>> move = shipment_in.incoming_moves[0]
-    >>> move.lot.number == today.strftime('%Y-%m-%d')
+    >>> move.lot.number == datetime.date.today().strftime('%Y-%m-%d')
     True
 
 Set the state as Done::
@@ -239,5 +238,5 @@ Set the state as Done::
     >>> sum([m.quantity for m in shipment_in.inventory_moves]) == \
     ...     sum([m.quantity for m in shipment_in.incoming_moves])
     True
-    >>> [x.number for x in Lot.find([])] == ['1', '2', today.strftime('%Y-%m-%d'), today.strftime('%Y-%m-%d')]
+    >>> [x.number for x in Lot.find([])] == ['1', '2', datetime.date.today().strftime('%Y-%m-%d'), datetime.date.today().strftime('%Y-%m-%d')]
     True
