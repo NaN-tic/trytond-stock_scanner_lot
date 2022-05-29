@@ -19,7 +19,6 @@ Imports::
     >>> from trytond.modules.account_invoice.tests.tools import \
     ...     set_fiscalyear_invoice_sequences, create_payment_term
     >>> from trytond.tests.tools import activate_modules
-    >>> today = datetime.date.today()
 
 Install Stock Scanner Lot Module::
 
