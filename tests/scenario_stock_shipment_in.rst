@@ -161,7 +161,7 @@ Scan products and assign it::
     1
     >>> len(shipment_in.incoming_moves)
     2
-    >>> move = shipment_in.incoming_moves[0]
+    >>> move = shipment_in.incoming_moves[1]
     >>> move.scanned_quantity == 1.0
     True
     >>> move.quantity == 1.0
@@ -193,7 +193,7 @@ Scan products and assign it::
     True
     >>> move.pending_quantity == 0.0
     True
-    >>> move.lot.number == '1'
+    >>> move.lot.number == '2'
     True
     >>> shipment_in.scanned_product = product
     >>> shipment_in.scanned_quantity = 1.0
@@ -203,7 +203,7 @@ Scan products and assign it::
     1
     >>> len(shipment_in.incoming_moves)
     4
-    >>> move = shipment_in.incoming_moves[0]
+    >>> move = shipment_in.incoming_moves[3]
     >>> move.scanned_quantity == 3.0
     True
     >>> move.pending_quantity == 0.0
@@ -217,7 +217,7 @@ Scan products and assign it::
     0
     >>> len(shipment_in.incoming_moves)
     5
-    >>> move = shipment_in.incoming_moves[0]
+    >>> move = shipment_in.incoming_moves[3]
     >>> move.lot.number == datetime.date.today().strftime('%Y-%m-%d')
     True
 
