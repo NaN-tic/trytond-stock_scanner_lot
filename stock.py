@@ -6,7 +6,6 @@ from trytond.pyson import Bool, Eval, If
 from trytond.pool import Pool, PoolMeta
 from trytond.modules.stock_scanner.stock import MIXIN_STATES
 from datetime import datetime
-from trytond.tools.multivalue import migrate_property
 from trytond.modules.company.model import (
     CompanyMultiValueMixin, CompanyValueMixin)
 
@@ -51,24 +50,6 @@ class ConfigurationScannerLotCreation(ModelSQL, CompanyValueMixin):
 
     scanner_lot_creation = fields.Selection(
         LOT_CREATION_MODES, 'Lot Creation')
-
-    @classmethod
-    def __register__(cls, module_name):
-        exist = backend.TableHandler.table_exist(cls._table)
-
-        super(ConfigurationScannerLotCreation, cls).__register__(module_name)
-
-        if not exist:
-            cls._migrate_property([], [], [])
-
-    @classmethod
-    def _migrate_property(cls, field_names, value_names, fields):
-        field_names.append('scanner_lot_creation')
-        value_names.append('scanner_lot_creation')
-        fields.append('company')
-        migrate_property(
-            'stock.configuration', field_names, cls, value_names,
-            fields=fields)
 
     @classmethod
     def default_scanner_lot_creation(cls):
