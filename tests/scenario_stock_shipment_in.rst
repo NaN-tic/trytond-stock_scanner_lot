@@ -114,6 +114,7 @@ Create a purchase::
     >>> purchase_line = purchase.lines.new()
     >>> purchase_line.product = product
     >>> purchase_line.quantity = 10
+    >>> purchase_line.unit_price = product.cost_price
     >>> purchase.save()
     >>> purchase.click('quote')
     >>> purchase.click('confirm')
