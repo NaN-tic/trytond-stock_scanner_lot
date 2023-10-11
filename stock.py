@@ -1,6 +1,5 @@
 # The COPYRIGHT file at the top level of this repository contains the full
 # copyright notices and license terms.
-from trytond import backend
 from trytond.model import ModelSQL, fields
 from trytond.pyson import Bool, Eval, If
 from trytond.pool import Pool, PoolMeta
@@ -8,10 +7,6 @@ from trytond.modules.stock_scanner.stock import MIXIN_STATES
 from datetime import datetime
 from trytond.modules.company.model import (
     CompanyMultiValueMixin, CompanyValueMixin)
-
-
-__all__ = ['Configuration', 'ConfigurationScannerLotCreation',
-    'ShipmentIn', 'ShipmentOut', 'ShipmentOutReturn']
 
 LOT_CREATION_MODES = [
             (None, ''),
