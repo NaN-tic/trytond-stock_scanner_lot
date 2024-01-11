@@ -56,14 +56,14 @@ class StockScanMixin(object):
     scanned_lot_number = fields.Char('Scanned Lot Number', states={
         'readonly': (Bool(Eval('scanned_lot', False))
                     | ~Eval('state', 'draft').in_(['waiting', 'draft'])),
-        }, depends=['state', 'scanned_lot'],
+        },
         help="Lot number of the lot that will be scanned.")
     scanned_lot = fields.Many2One('stock.lot', 'Stock Lot', domain=[
             If(Bool(Eval('scanned_product')),
                 ('product', '=', Eval('scanned_product')),
                 ()),
             ],
-        states=MIXIN_STATES, depends=['state', 'scanned_product'])
+        states=MIXIN_STATES)
 
     def clear_scan_values(self):
         super(StockScanMixin, self).clear_scan_values()
