@@ -228,7 +228,7 @@ Set the state as Done::
     >>> product.template.lot_required = []
     >>> product.template.save()
     >>> ShipmentIn.receive([shipment_in.id], config.context)
-    >>> ShipmentIn.done([shipment_in.id], config.context)
+    >>> ShipmentIn.do([shipment_in.id], config.context)
     >>> shipment_in.reload()
     >>> len(shipment_in.incoming_moves)
     5
