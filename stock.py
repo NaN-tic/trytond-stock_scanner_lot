@@ -148,8 +148,7 @@ class StockScanMixin(object):
             move.origin = adjusted_move.origin
         if not move.lot:
             move.lot = self.scanned_lot
-        if move._save_values:
-            move.save()
+        move.save()
         return move
 
 
