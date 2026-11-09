@@ -54,8 +54,8 @@ class ConfigurationScannerLotCreation(ModelSQL, CompanyValueMixin):
 class StockScanMixin(object):
     __slots__ = ()
     scanned_lot_number = fields.Char('Scanned Lot Number', states={
-        'readonly': (Bool(Eval('scanned_lot', False))
-                    | ~Eval('state', 'draft').in_(['waiting', 'draft'])),
+        'readonly': ~Eval('state', 'draft').in_(['waiting', 'draft']),
+        'editable': ~Bool(Eval('scanned_lot', False)),
         },
         help="Lot number of the lot that will be scanned.")
     scanned_lot = fields.Many2One('stock.lot', 'Stock Lot', domain=[
